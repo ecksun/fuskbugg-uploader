@@ -1,4 +1,7 @@
-import httplib, mimetypes, sys, json
+import httplib
+import mimetypes
+import sys
+import json
 
 def post_multipart(host, selector, files):
     content_type, body = encode_multipart_formdata(files)
@@ -43,5 +46,6 @@ def post_file(filename):
     respons = json.loads(read)
     return respons["url"]
 
-for arg in sys.argv[1:]:
-    print post_file(arg)
+if __name__ == '__main__':
+    for arg in sys.argv[1:]:
+        print post_file(arg)
