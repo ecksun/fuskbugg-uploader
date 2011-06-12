@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import httplib
 import mimetypes
 import sys
