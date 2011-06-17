@@ -1,0 +1,4 @@
+Simple script to upload files to fuskbugg.se
+
+The script originates from several posts at
+http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/

@@ -4,6 +4,11 @@ import mimetypes
 import sys
 import json
 import os
+import random
+import string
+
+FUSKBUGG_UPLOADER_NAME = "Fuskbugg uploader"
+FUSKBUGG_UPLOADER_VERSION = 0.11
 
 # Send files as POST multipart/formdata data to the provided host at path
 # (selector)
@@ -11,7 +16,7 @@ def post_multipart(host, selector, files):
     content_type, body = encode_multipart_formdata(files)
     h = httplib.HTTPConnection(host)
     headers = {
-        'User-Agent': 'bajskorv',
+        'User-Agent': 'Fuskbugg python uploader',
         'Content-Type': content_type
         }
     h.request('POST', selector, body, headers)
@@ -25,7 +30,11 @@ def encode_multipart_formdata(files):
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
     Return (content_type, body) ready for httplib.HTTP instance
     """
-    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+
+    random_string = ''.join(random.choice(string.ascii_letters) for x in range(32))
+    # BOUNDARY Should just be a unique string, hence the random data on the end
+    BOUNDARY = '--The_Boundary_and_random:%s' % (random_string)
+
     CRLF = '\r\n'
     L = []
     for (key, filename, value) in files:
@@ -37,6 +46,7 @@ def encode_multipart_formdata(files):
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)
+    print body
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
 
@@ -53,8 +63,12 @@ def post_file(filename):
     data = fh.read()
     fh.close()
     (_, _, read) = post_multipart("fuskbugg.se", "/fuskbugg/desktop.php",  [("userfile", filename, data)]) 
+    # print read
     respons = json.loads(read)
-    return (True, respons["url"])
+    if respons["result"]:
+        return (True, respons["url"])
+    else:
+        return (False, "The sever responded with an error: %s" % (respons["msg"]))
 
 # Checks validity according to fuskbuggs rules.
 # If this check is overriden the server will still refuse the file, its purpose
@@ -69,6 +83,22 @@ def check_validity(filename):
 # upload them to fuskbugg
 if __name__ == '__main__':
     for arg in sys.argv[1:]:
+        if arg == "--help":
+            print """Usage: fuskbugg.py [OPTION]... [FILE]...
+Uploads each FILE to fuskbugg.se
+
+Options
+    --help      display this help and exit
+    --version   output version information and exit
+
+Before uploading each FILE need to pass certain tests, the tests
+are there in order to ease the load on fuskbugg.se's servers and
+only try to mimic the behaviour of the server. That is, if any test
+are bypassed the file might simply be rejected by the server."""
+            sys.exit(0)
+        if arg == "--version":
+            print "%s %s" % (FUSKBUGG_UPLOADER_NAME, FUSKBUGG_UPLOADER_VERSION)
+            sys.exit(0)
         (status, result) = post_file(arg)
         if status:
             print "%s uploaded to URL %s" % (arg, result)
