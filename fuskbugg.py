@@ -6,8 +6,8 @@ import json
 import os
 import random
 import string
+import argparse
 
-FUSKBUGG_UPLOADER_NAME = "Fuskbugg uploader"
 FUSKBUGG_UPLOADER_VERSION = 0.11
 
 # Send files as POST multipart/formdata data to the provided host at path
@@ -82,25 +82,17 @@ def check_validity(filename):
 # If this file is executed directly treat all arguments as filenames and try to
 # upload them to fuskbugg
 if __name__ == '__main__':
-    for arg in sys.argv[1:]:
-        if arg == "--help":
-            print """Usage: fuskbugg.py [OPTION]... [FILE]...
-Uploads each FILE to fuskbugg.se
+    arg_parser = argparse.ArgumentParser(
+        description="Upload files to fuskbugg", 
+        epilog="Before uploading each FILE need to pass certain tests, the tests are there in order to ease the load on fuskbugg.se's servers and only try to mimic the behaviour of the server. That is, if any test are bypassed the file might simply be rejected by the server."
+    )
 
-Options
-    --help      display this help and exit
-    --version   output version information and exit
+    arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
+    arg_parser.add_argument("FILE", nargs="+", help="The files to upload")
 
-Before uploading each FILE need to pass certain tests, the tests
-are there in order to ease the load on fuskbugg.se's servers and
-only try to mimic the behaviour of the server. That is, if any test
-are bypassed the file might simply be rejected by the server."""
-            sys.exit(0)
-        if arg == "--version":
-            print "%s %s" % (FUSKBUGG_UPLOADER_NAME, FUSKBUGG_UPLOADER_VERSION)
-            sys.exit(0)
-        (status, result) = post_file(arg)
+    for file in args.FILE:
+        (status, result) = post_file(file)
         if status:
-            print "%s uploaded to URL %s" % (arg, result)
+            print "%s uploaded to URL %s" % (file, result)
         else:
             print result
