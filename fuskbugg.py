@@ -9,8 +9,12 @@ import string
 import argparse
 import ConfigParser
 
-FUSKBUGG_UPLOADER_VERSION = 0.11
 DEBUG = False
+
+# A simple container for constants and other data used throughout the program
+class global_data:
+    domain = "fuskbugg.se"
+    FUSKBUGG_UPLOADER_VERSION = 0.12
 
 # Send files as POST multipart/formdata data to the provided host at path
 # (selector)
@@ -85,6 +89,39 @@ def post_file(filename):
     else:
         return (False, "The sever responded with an error: %s" % (respons["msg"]))
 
+# Fetch the names of all files uploaded with the configured user-id
+def get_file_list():
+    connection = httplib.HTTPConnection(global_data.domain)
+    connection.request(
+        "GET", 
+        "/fuskbugg/desktop-filelist.php?userid=%s" % (config.get("authentication", "user-id")), 
+    )
+    respons_data = connection.getresponse().read()
+    if DEBUG:
+        print respons_data
+    respons = json.loads(respons_data)
+    fields = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
+    max_widths = {}
+    for file in respons:
+        file["url"] = "%s%s" % (file["dir"], file["file"])
+        for key, value in file.iteritems():
+            if key not in fields:
+                continue
+            if key not in max_widths:
+                max_widths[key] = 0
+            max_widths[key] = max(len(fields[key]), max_widths[key], len(str(value)))
+
+    for key in fields:
+        print fields[key].ljust(max_widths[key]+2),
+    print
+
+    for file in respons:
+        for key, value in file.iteritems():
+            if key in fields:
+                print str(value).ljust(max_widths[key]+2),
+        print
+
+
 # Checks validity according to fuskbuggs rules.
 # If this check is overriden the server will still refuse the file, its purpose
 # is to remove unnescesary POSTs to the server
@@ -114,19 +151,39 @@ with open(config_file, 'wb') as configfile:
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="Upload files to fuskbugg", 
-        epilog="Before uploading each FILE need to pass certain tests, the tests are there in order to ease the load on fuskbugg.se's servers and only try to mimic the behaviour of the server. That is, if any test are bypassed the file might simply be rejected by the server."
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=
+"""
+Either -l of a FILE must be provided as argument in order for something to be
+executed.
+
+Before uploading each FILE need to pass certain tests, the tests are there in
+order to ease the load on fuskbugg.se's servers and only try to mimic the
+behaviour of the server. That is, if any test are bypassed the file might
+simply be rejected by the server."""
     )
 
-    arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
+    arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (global_data.FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
     arg_parser.add_argument("--user-id", type=int, metavar="UID", help="The user ID used to identify a user on fuskbugg, are generated per default and should mostly not be used")
-    arg_parser.add_argument("FILE", nargs="+", help="The files to upload")
+    arg_parser.add_argument("-l", "--list", action="store_true", help="List files uploaded with the specified user-id")
+    arg_parser.add_argument("FILE", nargs="*", help="The files to upload")
     args = arg_parser.parse_args()
+
+    if DEBUG:
+        print args
+
     if args.user_id != None:
         config.set("authentication", "user-id", str(args.user_id))
 
-    for file in args.FILE:
-        (status, result) = post_file(file)
-        if status:
-            print "%s uploaded to URL %s" % (file, result)
-        else:
-            print result
+    if args.list:
+        get_file_list()
+
+    elif args.FILE:
+        for file in args.FILE:
+            (status, result) = post_file(file)
+            if status:
+                print "%s uploaded to URL %s" % (file, result)
+            else:
+                print result
+    else:
+        print "No action specified, see --help"
