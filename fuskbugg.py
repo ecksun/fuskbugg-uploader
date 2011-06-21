@@ -7,13 +7,15 @@ import os
 import random
 import string
 import argparse
+import ConfigParser
 
 FUSKBUGG_UPLOADER_VERSION = 0.11
+DEBUG = False
 
 # Send files as POST multipart/formdata data to the provided host at path
 # (selector)
-def post_multipart(host, selector, files):
-    content_type, body = encode_multipart_formdata(files)
+def post_multipart(host, selector, fields, files):
+    content_type, body = encode_multipart_formdata(fields, files)
     h = httplib.HTTPConnection(host)
     headers = {
         'User-Agent': 'Fuskbugg python uploader',
@@ -24,7 +26,7 @@ def post_multipart(host, selector, files):
     return res.status, res.reason, res.read()
 
 # Encode files for use in a POST mutlipart/formdata request
-def encode_multipart_formdata(files):
+def encode_multipart_formdata(fields, files):
     """
     fields is a sequence of (name, value) elements for regular form fields.
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
@@ -37,6 +39,12 @@ def encode_multipart_formdata(files):
 
     CRLF = '\r\n'
     L = []
+    for (key, value) in fields:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(value)
+
     for (key, filename, value) in files:
         L.append('--' + BOUNDARY)
         L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
@@ -46,7 +54,8 @@ def encode_multipart_formdata(files):
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)
-    print body
+    if DEBUG:
+        print body
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
 
@@ -62,8 +71,14 @@ def post_file(filename):
     fh = open(filename)
     data = fh.read()
     fh.close()
-    (_, _, read) = post_multipart("fuskbugg.se", "/fuskbugg/desktop.php",  [("userfile", filename, data)]) 
-    # print read
+    (_, _, read) = post_multipart(
+        "fuskbugg.se", 
+        "/fuskbugg/desktop-api.php", 
+        [("userid", config.get("authentication", "user-id"))], 
+        [("userfile", filename, data)]
+    ) 
+    if DEBUG:
+        print read
     respons = json.loads(read)
     if respons["result"]:
         return (True, respons["url"])
@@ -79,6 +94,19 @@ def check_validity(filename):
     return (True, "")
 
 
+config_file = os.path.expanduser("~") + "/.fuskbuggrc"
+config = ConfigParser.SafeConfigParser()
+config.read([config_file])
+# Assumes that if no authentication section exist this is the first time the
+# script is run
+if not config.has_section("authentication"):
+    config.add_section("authentication")
+    config.set("authentication", "user-id", str(random.randint(1, 2e9)))
+
+with open(config_file, 'wb') as configfile:
+    config.write(configfile)
+
+
 # If this file is executed directly treat all arguments as filenames and try to
 # upload them to fuskbugg
 if __name__ == '__main__':
@@ -88,7 +116,11 @@ if __name__ == '__main__':
     )
 
     arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
+    arg_parser.add_argument("--user-id", type=int, metavar="UID", help="The user ID used to identify a user on fuskbugg, are generated per default and should mostly not be used")
     arg_parser.add_argument("FILE", nargs="+", help="The files to upload")
+    args = arg_parser.parse_args()
+    if args.user_id != None:
+        config.set("authentication", "user-id", str(args.user_id))
 
     for file in args.FILE:
         (status, result) = post_file(file)
