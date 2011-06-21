@@ -102,6 +102,8 @@ config.read([config_file])
 if not config.has_section("authentication"):
     config.add_section("authentication")
     config.set("authentication", "user-id", str(random.randint(1, 2e9)))
+    print "A new user-id has automatically been generated for you and added to %s, it is %s." % (config_file, config.get("authentication", "user-id"))
+    print "Save this ID as it is associated with the files you upload and can be used to access them again"
 
 with open(config_file, 'wb') as configfile:
     config.write(configfile)
