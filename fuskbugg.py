@@ -138,7 +138,8 @@ config.read([config_file])
 # script is run
 if not config.has_section("authentication"):
     config.add_section("authentication")
-    config.set("authentication", "user-id", str(random.randint(1, 2e9)))
+    # The user-id needs to be 13 digits
+    config.set("authentication", "user-id", str(random.randint(1e12, 1e13-1)))
     print "A new user-id has automatically been generated for you and added to %s, it is %s." % (config_file, config.get("authentication", "user-id"))
     print "Save this ID as it is associated with the files you upload and can be used to access them again"
 
@@ -174,6 +175,11 @@ simply be rejected by the server."""
 
     if args.user_id != None:
         config.set("authentication", "user-id", str(args.user_id))
+
+    uid_len = len(config.get("authentication", "user-id"))
+    if uid_len != 13:
+        print "User-id needs to be exactly 13 digits"
+        sys.exit(1)
 
     if args.list:
         get_file_list()
