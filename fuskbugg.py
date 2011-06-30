@@ -1,4 +1,23 @@
 #!/usr/bin/python
+"""
+This is a python program that provides an interface to fuskbugg.se, it is
+called "fuskbugg python uploader".
+
+Copyright (C) 2011 Linus Wallgren
+This file is part of fuskbugg python uploader.
+
+This program  is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 import httplib
 import mimetypes
 import sys
@@ -99,7 +118,10 @@ def get_file_list():
     respons_data = connection.getresponse().read()
     if DEBUG:
         print respons_data
-    respons = json.loads(respons_data)
+    return json.loads(respons_data)
+
+def print_file_list():
+    respons = get_file_list()
     fields = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
     max_widths = {}
     for file in respons:
@@ -167,6 +189,7 @@ simply be rejected by the server."""
     arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (global_data.FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
     arg_parser.add_argument("--user-id", type=int, metavar="UID", help="The user ID used to identify a user on fuskbugg, are generated per default and should mostly not be used")
     arg_parser.add_argument("-l", "--list", action="store_true", help="List files uploaded with the specified user-id")
+    arg_parser.add_argument("-g", "--gui", action="store_true", help="Start the GUI")
     arg_parser.add_argument("FILE", nargs="*", help="The files to upload")
     args = arg_parser.parse_args()
 
@@ -182,7 +205,11 @@ simply be rejected by the server."""
         sys.exit(1)
 
     if args.list:
-        get_file_list()
+        print_file_list()
+
+    elif args.gui:
+        from qt import run_gui
+        run_gui()
 
     elif args.FILE:
         for file in args.FILE:
