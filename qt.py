@@ -45,6 +45,8 @@ class MainGui(QtGui.QMainWindow):
         self.setWindowIcon(QtGui.QIcon('images/icon.png'))
 
         # All widgets displayed on screen
+        upload_button = QtGui.QAction('Upload file', self)
+        upload_button.setShortcut('Ctrl+u')
         screenshot_button = QtGui.QAction('Upload screenshot', self)
         screenshot_button.setShortcut('Ctrl+p')
         screenshot_button.setToolTip('Take screenshot and upload to fuskbugg')
@@ -58,6 +60,7 @@ class MainGui(QtGui.QMainWindow):
         self.action_toolbar.setMovable(False)
         self.about_toolbar.setMovable(False)
 
+        self.action_toolbar.addAction(upload_button)
         self.action_toolbar.addAction(screenshot_button)
         self.action_toolbar.addAction(refresh_button)
         self.about_toolbar.addAction(about_button)
@@ -67,6 +70,7 @@ class MainGui(QtGui.QMainWindow):
         self.connect(about_button, QtCore.SIGNAL('triggered()'), self.about_dialog)
         self.connect(QtGui.QApplication.instance(), QtCore.SIGNAL('aboutToQuit()'), self.quit)
         self.connect(refresh_button, QtCore.SIGNAL('triggered()'), self.update_filelist)
+        self.connect(upload_button, QtCore.SIGNAL('triggered()'), self.upload_file_gui)
 
         label_mapping = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
 
@@ -101,6 +105,17 @@ class MainGui(QtGui.QMainWindow):
             self.model.appendRow(items)
 
 
+    def upload_file_gui(self):
+        self.upload_file(str(QtGui.QFileDialog.getOpenFileName(self, 'Upload file')))
+
+    def upload_file(self, filename):
+        (status, result) = fuskbugg.post_file(filename) 
+        if status:
+            print "%s uploaded to URL %s" % (filename, result)
+            self.update_filelist()
+        else:
+            print result
+
     def take_screenshot(self):
         self.hide()
         window = QtGui.QPixmap.grabWindow(QtGui.QApplication.desktop().winId())
@@ -108,12 +123,7 @@ class MainGui(QtGui.QMainWindow):
         self.show()
         if window.save(filename):
             print "Saved screenshot as %s" % (filename)
-            (status, result) = fuskbugg.post_file(filename) 
-            if status:
-                print "%s uploaded to URL %s" % (filename, result)
-                self.update_filelist()
-            else:
-                print result
+            self.upload_file(filename)
         else:
             print "The file could not be saved"
 
