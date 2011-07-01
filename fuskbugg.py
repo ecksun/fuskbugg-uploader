@@ -109,6 +109,7 @@ def post_file(filename):
         return (False, "The sever responded with an error: %s" % (respons["msg"]))
 
 # Fetch the names of all files uploaded with the configured user-id
+# Return a list of files or an empty list of nothing could be read or decoded
 def get_file_list():
     connection = httplib.HTTPConnection(global_data.domain)
     connection.request(
@@ -118,20 +119,25 @@ def get_file_list():
     respons_data = connection.getresponse().read()
     if DEBUG:
         print respons_data
-    return json.loads(respons_data)
+    try :
+        return json.loads(respons_data)
+    except ValueError:
+        return []
 
 def print_file_list():
     respons = get_file_list()
     fields = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
     max_widths = {}
+    for (key, value) in fields.iteritems():
+        max_widths[key] = len(value)
+
     for file in respons:
-        file["url"] = "%s%s" % (file["dir"], file["file"])
         for key, value in file.iteritems():
             if key not in fields:
                 continue
             if key not in max_widths:
                 max_widths[key] = 0
-            max_widths[key] = max(len(fields[key]), max_widths[key], len(str(value)))
+            max_widths[key] = max(max_widths[key], len(str(value)))
 
     for key in fields:
         print fields[key].ljust(max_widths[key]+2),
