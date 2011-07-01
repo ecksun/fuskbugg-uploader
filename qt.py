@@ -48,13 +48,19 @@ class MainGui(QtGui.QMainWindow):
         # All widgets displayed on screen
         screenshot_button = QtGui.QAction('Upload screenshot', self)
         screenshot_button.setShortcut('Ctrl+p')
-        screenshot_button.setStatusTip('Take screenshot and upload to fuskbugg')
+        screenshot_button.setToolTip('Take screenshot and upload to fuskbugg')
+        about_button = QtGui.QAction('About', self)
+        about_button.setToolTip('About fuskbugg python uploader')
 
-        self.toolbar = self.addToolBar('Screenshot')
-        self.toolbar.addAction(screenshot_button)
+        self.toolbar_action = self.addToolBar('Actions')
+        self.toolbar_about = self.addToolBar('About')
+
+        self.toolbar_action.addAction(screenshot_button)
+        self.toolbar_about.addAction(about_button)
 
         # Connect signals with slots
         self.connect(screenshot_button, QtCore.SIGNAL('triggered()'), self.take_screenshot)
+        self.connect(about_button, QtCore.SIGNAL('triggered()'), self.about_dialog)
         self.connect(QtGui.QApplication.instance(), QtCore.SIGNAL('aboutToQuit()'), self.quit)
 
         label_mapping = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
@@ -85,9 +91,6 @@ class MainGui(QtGui.QMainWindow):
 
         self.setCentralWidget(tree)
 
-
-
-
     def take_screenshot(self):
         self.hide()
         window = QtGui.QPixmap.grabWindow(QtGui.QApplication.desktop().winId())
@@ -102,6 +105,13 @@ class MainGui(QtGui.QMainWindow):
                 print result
         else:
             print "The file could not be saved"
+
+    def about_dialog(self):
+        QtGui.QMessageBox.about(self, "About %s" % (self.windowTitle()), 
+                """This program is written by Linus Wallgren, and licensed under GPLv3.
+
+My contact information and further information about this program can be found in the README file included in the root directory of this program."""
+                )
 
     def quit(self):
         geometry = self.geometry()

@@ -189,7 +189,7 @@ simply be rejected by the server."""
     arg_parser.add_argument("-v", "--version", action="version", version="%%(prog)s v%s" % (global_data.FUSKBUGG_UPLOADER_VERSION,), help="output version information and exit")
     arg_parser.add_argument("--user-id", type=int, metavar="UID", help="The user ID used to identify a user on fuskbugg, are generated per default and should mostly not be used")
     arg_parser.add_argument("-l", "--list", action="store_true", help="List files uploaded with the specified user-id")
-    arg_parser.add_argument("-g", "--gui", action="store_true", help="Start the GUI")
+    arg_parser.add_argument("-g", "--gui", action="store_true", help="Start the GUI, this gives the option to take screenshots")
     arg_parser.add_argument("FILE", nargs="*", help="The files to upload")
     args = arg_parser.parse_args()
 
