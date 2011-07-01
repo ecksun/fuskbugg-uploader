@@ -94,6 +94,9 @@ def post_file(filename):
     fh = open(filename)
     data = fh.read()
     fh.close()
+    return post_data(filename, data)
+
+def post_data(filename, data):
     (_, _, read) = post_multipart(
         "fuskbugg.se", 
         "/fuskbugg/desktop-api.php", 

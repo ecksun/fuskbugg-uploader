@@ -52,6 +52,9 @@ class MainGui(QtGui.QMainWindow):
         screenshot_button.setToolTip('Take screenshot and upload to fuskbugg')
         refresh_button = QtGui.QAction('Refresh', self)
         refresh_button.setToolTip('Refresh filelist')
+        upload_clipboard = QtGui.QAction('Upload from clipboard', self)
+        upload_clipboard.setToolTip('Upload contents from clipboard')
+
         about_button = QtGui.QAction('About', self)
         about_button.setToolTip('About fuskbugg python uploader')
 
@@ -62,6 +65,7 @@ class MainGui(QtGui.QMainWindow):
 
         self.action_toolbar.addAction(upload_button)
         self.action_toolbar.addAction(screenshot_button)
+        self.action_toolbar.addAction(upload_clipboard)
         self.action_toolbar.addAction(refresh_button)
         self.about_toolbar.addAction(about_button)
 
@@ -71,6 +75,7 @@ class MainGui(QtGui.QMainWindow):
         self.connect(QtGui.QApplication.instance(), QtCore.SIGNAL('aboutToQuit()'), self.quit)
         self.connect(refresh_button, QtCore.SIGNAL('triggered()'), self.update_filelist)
         self.connect(upload_button, QtCore.SIGNAL('triggered()'), self.upload_file_gui)
+        self.connect(upload_clipboard, QtCore.SIGNAL('triggered()'), self.upload_clipboard)
 
         label_mapping = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
 
@@ -115,6 +120,30 @@ class MainGui(QtGui.QMainWindow):
             self.update_filelist()
         else:
             print result
+
+    def upload_clipboard(self):
+        mimedata = QtGui.QApplication.clipboard().mimeData()
+        # print mimedata.text()
+        if mimedata.hasText():
+            (status, result) = fuskbugg.post_data("clipboard", str(mimedata.text()))
+        elif mimedata.hasImage():
+            # This is a rather ugly workaround, in order to handle mimetypes
+            # correctly and to convert the file to a str I had to take the way
+            # through a temporary file object, this shouldnt be nescesary.
+            tmpfile = QtCore.QTemporaryFile(QtCore.QDir.tempPath() + "/XXXXXXclipboard.png")
+            print tmpfile.fileTemplate()
+            if tmpfile.open():
+                image = QtGui.QApplication.clipboard().image()
+                image.save(tmpfile, "PNG")
+                (status, result) = fuskbugg.post_file(str(tmpfile.fileName()))
+            else:
+                print "Could not open temporary file, this is not good."
+        if status:
+            print "Clipboard uploaded to URL %s" % (result)
+            self.update_filelist()
+        else:
+            print result
+
 
     def take_screenshot(self):
         self.hide()
