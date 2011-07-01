@@ -25,7 +25,6 @@ from PyQt4 import QtGui, QtCore
 class MainGui(QtGui.QMainWindow):
     # Contains default values
     geometry_config = {"x" : 0, "y": 0, "width": 750, "height" : 300}
-
     labels = ["url", "ip", "trash", "date", "size"] # The order of items
     def __init__(self):
         self.init_config()
@@ -65,16 +64,12 @@ class MainGui(QtGui.QMainWindow):
 
         label_mapping = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
 
-        model = QtGui.QStandardItemModel()
-        model.setHorizontalHeaderLabels([label_mapping[i] for i in self.labels])
-        for file in fuskbugg.get_file_list():
-            items = []
-            for key in self.labels:
-                items.append(QtGui.QStandardItem(str(file[key])))
-            model.appendRow(items)
+        self.model = QtGui.QStandardItemModel()
+        self.model.setHorizontalHeaderLabels([label_mapping[i] for i in self.labels])
 
         tree = QtGui.QTreeView(self)
-        tree.setModel(model)
+        tree.setModel(self.model)
+        self.update_filelist()
         tree.setSortingEnabled(True)
         tree.sortByColumn(self.labels.index('date'),QtCore.Qt.DescendingOrder)
 
@@ -91,16 +86,26 @@ class MainGui(QtGui.QMainWindow):
 
         self.setCentralWidget(tree)
 
+    def update_filelist(self):
+        self.model.removeRows(0, self.model.rowCount())
+        for file in fuskbugg.get_file_list():
+            items = []
+            for key in self.labels:
+                items.append(QtGui.QStandardItem(str(file[key])))
+            self.model.appendRow(items)
+
+
     def take_screenshot(self):
         self.hide()
         window = QtGui.QPixmap.grabWindow(QtGui.QApplication.desktop().winId())
-        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save file as')
+        filename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save file as'))
         self.show()
         if window.save(filename):
             print "Saved screenshot as %s" % (filename)
             (status, result) = fuskbugg.post_file(filename) 
             if status:
                 print "%s uploaded to URL %s" % (filename, result)
+                self.update_filelist()
             else:
                 print result
         else:
