@@ -48,19 +48,25 @@ class MainGui(QtGui.QMainWindow):
         screenshot_button = QtGui.QAction('Upload screenshot', self)
         screenshot_button.setShortcut('Ctrl+p')
         screenshot_button.setToolTip('Take screenshot and upload to fuskbugg')
+        refresh_button = QtGui.QAction('Refresh', self)
+        refresh_button.setToolTip('Refresh filelist')
         about_button = QtGui.QAction('About', self)
         about_button.setToolTip('About fuskbugg python uploader')
 
-        self.toolbar_action = self.addToolBar('Actions')
-        self.toolbar_about = self.addToolBar('About')
+        self.action_toolbar = self.addToolBar('Actions')
+        self.about_toolbar = self.addToolBar('About')
+        self.action_toolbar.setMovable(False)
+        self.about_toolbar.setMovable(False)
 
-        self.toolbar_action.addAction(screenshot_button)
-        self.toolbar_about.addAction(about_button)
+        self.action_toolbar.addAction(screenshot_button)
+        self.action_toolbar.addAction(refresh_button)
+        self.about_toolbar.addAction(about_button)
 
         # Connect signals with slots
         self.connect(screenshot_button, QtCore.SIGNAL('triggered()'), self.take_screenshot)
         self.connect(about_button, QtCore.SIGNAL('triggered()'), self.about_dialog)
         self.connect(QtGui.QApplication.instance(), QtCore.SIGNAL('aboutToQuit()'), self.quit)
+        self.connect(refresh_button, QtCore.SIGNAL('triggered()'), self.update_filelist)
 
         label_mapping = {"url" : "URL", "ip" : "IP", "trash" : "In trash", "date" : "Upload date", "size": "Size"}
 
@@ -69,9 +75,9 @@ class MainGui(QtGui.QMainWindow):
 
         tree = QtGui.QTreeView(self)
         tree.setModel(self.model)
-        self.update_filelist()
         tree.setSortingEnabled(True)
         tree.sortByColumn(self.labels.index('date'),QtCore.Qt.DescendingOrder)
+        self.update_filelist()
 
         tree.header().setResizeMode(QtGui.QHeaderView.Interactive)
 
