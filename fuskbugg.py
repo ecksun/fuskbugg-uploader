@@ -154,6 +154,8 @@ def print_file_list():
 # If this check is overriden the server will still refuse the file, its purpose
 # is to remove unnescesary POSTs to the server
 def check_validity(filename):
+    if not os.path.exists(filename):
+        return (False, "File doesent exist")
     if os.path.getsize(filename) > 100e6:
         return (False, "File size to large")
     return (True, "")
